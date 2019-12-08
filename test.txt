@@ -1,1 +1,14 @@
-Hey.
+Welcome to the editor!
+
+Right now, it has no name, but maybe one day it will.
+
+Right now, the editor supports:
+- Line numbers
+- Save, Save As, and Open operations for files
+  using CMD-S, CMD-Shift-S, and CMD-O
+- Emacs-like "Next word" and "Prior word" with
+  CMD-F and CMD-B
+- Basic support for font-loading; right now, the program
+  is configured to use Monaco, a monospace font on macOS.
+
+Hopefully there will be more features to come!

@@ -57,6 +57,7 @@ int main(int argc, char **argv)
 
     window->show(argc, argv);
     int status = Fl::run();
+    delete window;
     delete buffer;
     return status;
 }

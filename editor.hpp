@@ -1,7 +1,7 @@
 #ifndef EDITOR_APP_H
 #define EDITOR_APP_H
 #include <FL/Fl_Text_Editor.H>
-#include <FL/Fl_Text_Buffer.H>
+#include <string>
 
 constexpr int Width = 500;
 // Name of editor font
@@ -12,6 +12,8 @@ constexpr int Line_Number_Width = 30; // in px
 constexpr int Initial_Buffer_Size = 200; // in bytes?
 
 class Editor : public Fl_Text_Editor {
+private:
+    std::string m_currFile;
 public:
     typedef void (*Key_Func)(Editor *editor);
     struct Key_Binding {
@@ -22,10 +24,11 @@ public:
     static Editor::Key_Binding Key_Bindings[6];
     Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h);
     int handle(int event) override;
-    ~Editor();
+    bool save();
+    void save_as(const char *filename);
+    void open(const char *filename);
 };
 
-void save(Editor *editor, const char *filename);
-void save_as(Editor *editor);
-void open(Editor *editor);
+void save_prompt(Editor *editor);
+void open_prompt(Editor *editor);
 #endif
