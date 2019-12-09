@@ -3,12 +3,14 @@
 #include <FL/Fl_Text_Buffer.H>
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/fl_ask.H>
+#include <cstring>
 
-Editor::Key_Binding Editor::Key_Bindings[] = {
+const Editor::Key_Binding Editor::Key_Bindings[] = {
+    // Move cursor back one word
     {'b', FL_COMMAND, [](Editor *editor) {
 			  editor->previous_word();
 		      }},
-    // Move cursor forward One Word
+    // Move cursor forward one word
     {'f', FL_COMMAND, [](Editor *editor) {
 			  editor->next_word();
 		      }},
@@ -17,40 +19,48 @@ Editor::Key_Binding Editor::Key_Bindings[] = {
 			  editor->save();
 		      }},
     // Save As current buffer
-    {'s', FL_COMMAND + FL_SHIFT, [](Editor *editor) {
-				     save_prompt(editor);
-				 }},
-    {'o', FL_COMMAND, [](Editor *editor) {
-			  open_prompt(editor);
-		      }}
+    {'s', FL_COMMAND + FL_SHIFT, save_prompt},
+    // Open file into buffer
+    {'o', FL_COMMAND, open_prompt},
+    // Search for string
+    {'s', FL_ALT, search_prompt}
+};
+
+const Editor::Style_Table_Entry styles[] = {
+    {} // 0 - Default style
 };
 
 void save_prompt(Editor *editor)
 {
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
-    int status = chooser.show();
-    if(status != 0) {
-	// User fails to pick a file
-	return;
+    if(chooser.show() == 0) {
+	// User successfully picks a file
+	editor->save_as(chooser.filename());;
     }
-    editor->save_as(chooser.filename());
 }
 
 void open_prompt(Editor *editor)
 {
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
-    int status = chooser.show();
-    if(status != 0) {
-	// User fails to pick a file
-	return;
+    if(chooser.show() == 0) {
+	// User successfully picks a file
+	editor->open(chooser.filename());
     }
-    editor->open(chooser.filename());
+}
+
+void search_prompt(Editor *editor)
+{
+    const auto *searchString = fl_input("Search (case-insensitive):", "");
+    if(searchString != nullptr && strncmp(searchString, "", 1) != 0) {
+        editor->search_forward(editor->insert_position(), searchString);
+    }
 }
 
 
 Editor::Editor(Fl_Text_Buffer *edit_buffer,
 	       int x, int y, int w, int h)
-    : Fl_Text_Editor(x, y, w, h), m_currFile("test.txt")
+    : Fl_Text_Editor(x, y, w, h), m_currFile("test.txt"),
+      m_style_buffer{new Fl_Text_Buffer(edit_buffer->length())}
 {
     buffer(edit_buffer);
     
@@ -63,13 +73,19 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
     window()->label(m_currFile.c_str());
 }
 
+Editor::~Editor()
+{
+    delete m_style_buffer;
+}
+
 int Editor::handle(int event)
 {
     switch(event) {
     case FL_KEYDOWN: {
-	if(Fl::event_state() == FL_COMMAND
-	   || Fl::event_state() == FL_COMMAND + FL_SHIFT) {
-	    auto state = Fl::event_state();
+	auto state = Fl::event_state();
+	if(state == FL_COMMAND
+	   || state == FL_COMMAND + FL_SHIFT
+	   || state == FL_ALT) {
 	    auto key = Fl::event_key();
 	    for(auto &each : Editor::Key_Bindings) {
 		if(each.key == key && each.state == state) {
@@ -115,4 +131,13 @@ void Editor::open(const char *filename)
     }
     m_currFile = filename;
     window()->label(filename);
+}
+
+void Editor::search_forward(int startPos, const char *searchString)
+{
+    int *foundPos = nullptr;
+    mBuffer->search_forward(startPos, searchString, foundPos);
+    if(foundPos != nullptr) {
+	mBuffer->highlight_position(foundPos, foundPos+1);
+    }
 }

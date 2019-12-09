@@ -14,6 +14,7 @@ constexpr int Initial_Buffer_Size = 200; // in bytes?
 class Editor : public Fl_Text_Editor {
 private:
     std::string m_currFile;
+    Fl_Text_Buffer *m_style_buffer;
 public:
     typedef void (*Key_Func)(Editor *editor);
     struct Key_Binding {
@@ -21,14 +22,19 @@ public:
 	int state;
 	Key_Func function;
     };
-    static Editor::Key_Binding Key_Bindings[6];
+    const static Editor::Key_Binding Key_Bindings[6];
     Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h);
+    ~Editor();
     int handle(int event) override;
+    // File handling
     bool save();
     void save_as(const char *filename);
     void open(const char *filename);
+    // Searching
+    void search_forward(int startPos, const char *searchString);
 };
 
 void save_prompt(Editor *editor);
 void open_prompt(Editor *editor);
+void search_prompt(Editor *editor);
 #endif
