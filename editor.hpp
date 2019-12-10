@@ -14,7 +14,7 @@ constexpr int Initial_Buffer_Size = 200; // in bytes?
 class Editor : public Fl_Text_Editor {
 private:
     std::string m_currFile;
-    Fl_Text_Buffer *m_style_buffer;
+    bool m_saved = true;
 public:
     typedef void (*Key_Func)(Editor *editor);
     struct Key_Binding {
@@ -24,7 +24,6 @@ public:
     };
     const static Editor::Key_Binding Key_Bindings[6];
     Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h);
-    ~Editor();
     int handle(int event) override;
     // File handling
     bool save();

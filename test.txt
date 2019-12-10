@@ -2,7 +2,8 @@ Welcome to the editor!
 
 Right now, it has no name, but maybe one day it will.
 
-Right now, the editor supports:
+Right now, the editor supports a few different features,
+such as:
 - Line numbers
 - Save, Save As, and Open operations for files
   using CMD-S, CMD-Shift-S, and CMD-O
@@ -10,5 +11,6 @@ Right now, the editor supports:
   CMD-F and CMD-B
 - Basic support for font-loading; right now, the program
   is configured to use Monaco, a monospace font on macOS.
+- Indication as to when the current buffer has been edited
 
 Hopefully there will be more features to come!

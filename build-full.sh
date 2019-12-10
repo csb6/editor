@@ -13,5 +13,7 @@ make install
 cd ..
 
 cp build/libfltk.a libfltk.a
+# Don't care about any other build files besides libfltk.a
+rm -r build
 cd fltk
 make clean

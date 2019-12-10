@@ -4,6 +4,7 @@
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/fl_ask.H>
 #include <cstring>
+#include <iostream>
 
 const Editor::Key_Binding Editor::Key_Bindings[] = {
     // Move cursor back one word
@@ -27,7 +28,8 @@ const Editor::Key_Binding Editor::Key_Bindings[] = {
 };
 
 const Editor::Style_Table_Entry styles[] = {
-    {} // 0 - Default style
+    // Font Color | Font | Font Size
+    { FL_YELLOW } // 'A' - Default style
 };
 
 void save_prompt(Editor *editor)
@@ -59,8 +61,7 @@ void search_prompt(Editor *editor)
 
 Editor::Editor(Fl_Text_Buffer *edit_buffer,
 	       int x, int y, int w, int h)
-    : Fl_Text_Editor(x, y, w, h), m_currFile("test.txt"),
-      m_style_buffer{new Fl_Text_Buffer(edit_buffer->length())}
+    : Fl_Text_Editor(x, y, w, h), m_currFile("test.txt")
 {
     buffer(edit_buffer);
     
@@ -71,11 +72,6 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
 
     open(m_currFile.c_str());
     window()->label(m_currFile.c_str());
-}
-
-Editor::~Editor()
-{
-    delete m_style_buffer;
 }
 
 int Editor::handle(int event)
@@ -94,6 +90,19 @@ int Editor::handle(int event)
 		}
 	    }
 	}
+	auto key_press = Fl::event_key();
+	if(m_saved && (std::isalnum(key_press)
+		       || std::ispunct(key_press)
+		       || std::isspace(key_press))) {
+	    // Add * to show that file has changed
+	    m_saved = false;
+	    const auto *currLabel = window()->label();
+	    char *newLabel = new char[std::strlen(currLabel)+2];
+	    std::strcpy(newLabel, currLabel);
+	    std::strcat(newLabel, "*");
+	    window()->copy_label(newLabel);
+	    delete[] newLabel;
+	}
 	return Fl_Text_Editor::handle(event);
     }	
     default:
@@ -104,11 +113,24 @@ int Editor::handle(int event)
 
 bool Editor::save()
 {
+    if(m_saved) {
+	return false;
+    }
     auto *buf = buffer();
     int status = buf->savefile(m_currFile.c_str(), buf->length());
     if(status != 0) {
         fl_alert("Error: could not save file");
 	return false;
+    }
+    m_saved = true;
+    const auto *currLabel = window()->label();
+    auto labelLen = std::strlen(currLabel);
+    if(currLabel[labelLen-1] == '*'
+       && m_currFile.back() != '*') {
+	auto *newLabel = new char[labelLen-1];
+	std::strncat(newLabel, currLabel, labelLen-1);
+        window()->copy_label(newLabel);
+	delete[] newLabel;
     }
     return true;
 }
@@ -116,6 +138,7 @@ bool Editor::save()
 void Editor::save_as(const char *filename)
 {
     m_currFile = filename;
+    m_saved = false;
     if(save()) {
 	window()->label(filename);
     }
