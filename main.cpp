@@ -2,7 +2,9 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
 #include <FL/fl_ask.H>
+#include <FL/Fl_Sys_Menu_Bar.H>
 #include "editor.hpp"
+#include <memory>
 
 static Fl_Font setupFonts()
 {
@@ -37,6 +39,12 @@ static int ask_before_closing(int event)
     return 0;
 }
 
+template<void(*Func)(Editor*)>
+static void editor_callback(Fl_Widget*, void *editor_obj)
+{
+    Func(static_cast<Editor*>(editor_obj));
+}
+
 int main(int argc, char **argv)
 {
     // macOS won't return from Fl::run() otherwise
@@ -49,9 +57,13 @@ int main(int argc, char **argv)
     Fl::add_handler(ask_before_closing);
     
     auto *window = new Fl_Window(Width, Width);
+    auto *buffer = new Fl_Text_Buffer(Initial_Buffer_Size);
     window->begin();
-        auto *buffer = new Fl_Text_Buffer(Initial_Buffer_Size);
-        auto *editor = new Editor(buffer, 0, 0, Width, Width);
+        auto *editor = new Editor(buffer, 0, EditorY, Width, Width);
+        auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, 20);
+	    menu->insert(0, "Edit", 0, 0, 0, FL_SUBMENU);
+	    menu->insert(0, "File", 0, 0, 0, FL_SUBMENU);
+	    menu->insert(1, "Save", 0, editor_callback<save_buffer>, editor);
 	window->resizable(editor);
     window->end();
 

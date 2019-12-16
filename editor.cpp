@@ -16,9 +16,7 @@ const Editor::Key_Binding Editor::Key_Bindings[] = {
 			  editor->next_word();
 		      }},
     // Save current buffer
-    {'s', FL_COMMAND, [](Editor *editor) {
-			  editor->save();
-		      }},
+    {'s', FL_COMMAND, save_buffer},
     // Save As current buffer
     {'s', FL_COMMAND + FL_SHIFT, save_prompt},
     // Open file into buffer
@@ -31,6 +29,11 @@ const Editor::Style_Table_Entry styles[] = {
     // Font Color | Font | Font Size
     { FL_YELLOW } // 'A' - Default style
 };
+
+void save_buffer(Editor *editor)
+{
+    editor->save();
+}
 
 void save_prompt(Editor *editor)
 {
@@ -64,8 +67,15 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
     : Fl_Text_Editor(x, y, w, h), m_currFile("test.txt")
 {
     buffer(edit_buffer);
-    
+
+    // Equivalent of grey23 in emacs
+    color(fl_rgb_color(59, 59, 59));
+    // Equivalent of cornsilk in emacs
+    textcolor(fl_rgb_color(250, 244, 219));
+    textsize(13);
+    selection_color(FL_BLUE);
     cursor_style(Fl_Text_Display::HEAVY_CURSOR);
+    cursor_color(FL_WHITE);
     linenumber_width(Line_Number_Width);
     wrap_mode(Fl_Text_Display::WRAP_AT_BOUNDS,
 	      Fl_Text_Display::WRAP_AT_COLUMN);
@@ -93,7 +103,8 @@ int Editor::handle(int event)
 	auto key_press = Fl::event_key();
 	if(m_saved && (std::isalnum(key_press)
 		       || std::ispunct(key_press)
-		       || std::isspace(key_press))) {
+		       || std::isspace(key_press)
+		       || key_press == FL_Enter)) {
 	    // Add * to show that file has changed
 	    m_saved = false;
 	    const auto *currLabel = window()->label();
@@ -140,7 +151,7 @@ void Editor::save_as(const char *filename)
     m_currFile = filename;
     m_saved = false;
     if(save()) {
-	window()->label(filename);
+	window()->copy_label(filename);
     }
 }
 

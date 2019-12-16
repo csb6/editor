@@ -4,6 +4,13 @@
 #include <string>
 
 constexpr int Width = 500;
+#ifdef __APPLE__
+    // macOS menu is in a taskbar, so don't need to make room for it in the
+    // main window above the editor widget
+    constexpr int EditorY = 0;
+#else
+    constexpr int EditorY = 20;
+#endif
 // Name of editor font
 constexpr char Font[] = "Monaco";
 // Width of column on side of screen that contains line numbers
@@ -33,6 +40,7 @@ public:
     void search_forward(int startPos, const char *searchString);
 };
 
+void save_buffer(Editor *editor);
 void save_prompt(Editor *editor);
 void open_prompt(Editor *editor);
 void search_prompt(Editor *editor);
