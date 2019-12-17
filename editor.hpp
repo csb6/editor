@@ -23,13 +23,6 @@ private:
     std::string m_currFile;
     bool m_saved = true;
 public:
-    typedef void (*Key_Func)(Editor *editor);
-    struct Key_Binding {
-	int key;
-	int state;
-	Key_Func function;
-    };
-    const static Editor::Key_Binding Key_Bindings[6];
     Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h);
     int handle(int event) override;
     // File handling
@@ -40,8 +33,5 @@ public:
     void search_forward(int startPos, const char *searchString);
 };
 
-void save_buffer(Editor *editor);
-void save_prompt(Editor *editor);
-void open_prompt(Editor *editor);
 void search_prompt(Editor *editor);
 #endif

@@ -1,57 +1,14 @@
 #include "editor.hpp"
 #include <FL/Fl.H>
 #include <FL/Fl_Text_Buffer.H>
-#include <FL/Fl_Native_File_Chooser.H>
 #include <FL/fl_ask.H>
 #include <cstring>
 #include <iostream>
 
-const Editor::Key_Binding Editor::Key_Bindings[] = {
-    // Move cursor back one word
-    {'b', FL_COMMAND, [](Editor *editor) {
-			  editor->previous_word();
-		      }},
-    // Move cursor forward one word
-    {'f', FL_COMMAND, [](Editor *editor) {
-			  editor->next_word();
-		      }},
-    // Save current buffer
-    {'s', FL_COMMAND, save_buffer},
-    // Save As current buffer
-    {'s', FL_COMMAND + FL_SHIFT, save_prompt},
-    // Open file into buffer
-    {'o', FL_COMMAND, open_prompt},
-    // Search for string
-    {'s', FL_ALT, search_prompt}
-};
-
-const Editor::Style_Table_Entry styles[] = {
+/*const Editor::Style_Table_Entry styles[] = {
     // Font Color | Font | Font Size
     { FL_YELLOW } // 'A' - Default style
-};
-
-void save_buffer(Editor *editor)
-{
-    editor->save();
-}
-
-void save_prompt(Editor *editor)
-{
-    Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
-    if(chooser.show() == 0) {
-	// User successfully picks a file
-	editor->save_as(chooser.filename());;
-    }
-}
-
-void open_prompt(Editor *editor)
-{
-    Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
-    if(chooser.show() == 0) {
-	// User successfully picks a file
-	editor->open(chooser.filename());
-    }
-}
+    };*/
 
 void search_prompt(Editor *editor)
 {
@@ -89,22 +46,14 @@ int Editor::handle(int event)
     switch(event) {
     case FL_KEYDOWN: {
 	auto state = Fl::event_state();
-	if(state == FL_COMMAND
-	   || state == FL_COMMAND + FL_SHIFT
-	   || state == FL_ALT) {
-	    auto key = Fl::event_key();
-	    for(auto &each : Editor::Key_Bindings) {
-		if(each.key == key && each.state == state) {
-		    each.function(this);
-		    return 1;
-		}
-	    }
-	}
+	if(state == FL_COMMAND || state == FL_ALT || state == FL_META)
+	    return Fl_Text_Editor::handle(event);
 	auto key_press = Fl::event_key();
-	if(m_saved && (std::isalnum(key_press)
+        if(m_saved && (std::isalnum(key_press)
 		       || std::ispunct(key_press)
 		       || std::isspace(key_press)
-		       || key_press == FL_Enter)) {
+		       || key_press == FL_Enter
+		       || key_press == FL_BackSpace)) {
 	    // Add * to show that file has changed
 	    m_saved = false;
 	    const auto *currLabel = window()->label();
@@ -136,8 +85,7 @@ bool Editor::save()
     m_saved = true;
     const auto *currLabel = window()->label();
     auto labelLen = std::strlen(currLabel);
-    if(currLabel[labelLen-1] == '*'
-       && m_currFile.back() != '*') {
+    if(currLabel[labelLen-1] == '*') {
 	auto *newLabel = new char[labelLen-1];
 	std::strncat(newLabel, currLabel, labelLen-1);
         window()->copy_label(newLabel);
@@ -164,7 +112,7 @@ void Editor::open(const char *filename)
 	return;
     }
     m_currFile = filename;
-    window()->label(filename);
+    window()->copy_label(filename);
 }
 
 void Editor::search_forward(int startPos, const char *searchString)

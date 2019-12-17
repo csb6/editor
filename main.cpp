@@ -3,6 +3,7 @@
 #include <FL/Fl_Window.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
+#include <FL/Fl_Native_File_Chooser.H>
 #include "editor.hpp"
 #include <memory>
 
@@ -39,10 +40,42 @@ static int ask_before_closing(int event)
     return 0;
 }
 
-template<void(*Func)(Editor*)>
-static void editor_callback(Fl_Widget*, void *editor_obj)
+void save_buffer(Fl_Widget*, void *data)
 {
-    Func(static_cast<Editor*>(editor_obj));
+    auto *editor = static_cast<Editor*>(data);
+    editor->save();
+}
+
+void save_prompt(Fl_Widget*, void *data)
+{
+    Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
+    if(chooser.show() == 0) {
+	// User successfully picks a file
+	auto *editor = static_cast<Editor*>(data);
+	editor->save_as(chooser.filename());
+    }
+}
+
+void open_prompt(Fl_Widget*, void *data)
+{
+    Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
+    if(chooser.show() == 0) {
+	// User successfully picks a file
+	auto *editor = static_cast<Editor*>(data);
+	editor->open(chooser.filename());
+    }
+}
+
+void prev_word(Fl_Widget*, void *data)
+{
+    auto *editor = static_cast<Editor*>(data);
+    editor->previous_word();
+}
+
+void next_word(Fl_Widget*, void *data)
+{
+    auto *editor = static_cast<Editor*>(data);
+    editor->next_word();
 }
 
 int main(int argc, char **argv)
@@ -55,21 +88,23 @@ int main(int argc, char **argv)
     setupFonts();
     Fl::add_handler(disable_escape_handler);
     Fl::add_handler(ask_before_closing);
-    
-    auto *window = new Fl_Window(Width, Width);
-    auto *buffer = new Fl_Text_Buffer(Initial_Buffer_Size);
+
+    std::unique_ptr<Fl_Text_Buffer> buffer(new Fl_Text_Buffer(Initial_Buffer_Size));
+    std::unique_ptr<Fl_Window> window(new Fl_Window(Width, Width));
     window->begin();
-        auto *editor = new Editor(buffer, 0, EditorY, Width, Width);
+        auto *editor = new Editor(buffer.get(), 0, EditorY, Width, Width);
         auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, 20);
-	    menu->insert(0, "Edit", 0, 0, 0, FL_SUBMENU);
+	    menu->insert(0, "View", 0, 0, 0, FL_SUBMENU);
+	        menu->insert(1, "Next Word", FL_COMMAND+'f', next_word, editor);
+	        menu->insert(1, "Prior Word", FL_COMMAND+'b', prev_word, editor);
 	    menu->insert(0, "File", 0, 0, 0, FL_SUBMENU);
-	    menu->insert(1, "Save", 0, editor_callback<save_buffer>, editor);
+	        menu->insert(1, "Save", FL_COMMAND+'s', save_buffer, editor);
+		menu->insert(1, "Save As", FL_COMMAND+FL_SHIFT+'s', save_prompt,
+			     editor);
+		menu->insert(1, "Open", FL_COMMAND+'o', open_prompt, editor);
 	window->resizable(editor);
     window->end();
 
     window->show(argc, argv);
-    int status = Fl::run();
-    delete window;
-    delete buffer;
-    return status;
+    return Fl::run();
 }
