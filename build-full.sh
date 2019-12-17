@@ -1,14 +1,16 @@
 #!/usr/bin/env sh
-repo_dir=`pwd`
+#These next 4 lines get the absolute path to this script
+pushd $(dirname "${0}") > /dev/null
+repo_dir=$(pwd -L)
+popd > /dev/null
 build_dir="$repo_dir/build"
 mkdir build
 mkdir FL
-include_dir="$repo_dir"
 echo "Build dir: $build_dir"
-echo "Include dir: $include_dir"
+echo "Repository dir: $repo_dir"
 
 cd fltk
-./configure --libdir=$build_dir --bindir=$build_dir --includedir=$include_dir --prefix=$build_dir
+./configure --libdir=$build_dir --bindir=$build_dir --includedir=$repo_dir --prefix=$build_dir
 make install
 cd ..
 

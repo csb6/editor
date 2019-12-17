@@ -21,9 +21,22 @@ constexpr int Initial_Buffer_Size = 200; // in bytes?
 class Editor : public Fl_Text_Editor {
 private:
     std::string m_currFile;
+    Fl_Font m_font;
     bool m_saved = true;
+    const Style_Table_Entry m_styletable[4] = {
+	//     Font Color            | Font  | Font Size
+	{ fl_rgb_color(250, 244, 219), m_font,    13    }, // 'A' - Default style
+	{ fl_rgb_color(236, 132, 62),  m_font,    13    }, // 'B' - Comments
+	{ fl_rgb_color(242, 164, 129), m_font,    13    }, // 'C' - Strings
+	{ fl_rgb_color(108, 232, 235), m_font,    13    }  // 'D' - Keywords
+    };
+    Fl_Text_Buffer *m_stylebuf;
+    friend void style_update(int pos, int nInserted, int nDeleted, int nRestyled,
+			     const char *deletedText, void *data);
 public:
-    Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h);
+    Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h,
+	   Fl_Font defaultFont);
+    ~Editor();
     int handle(int event) override;
     // File handling
     bool save();
