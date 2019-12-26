@@ -3,6 +3,7 @@
 #include <FL/Fl_Text_Buffer.H>
 #include <FL/fl_ask.H>
 #include <cstring>
+#include <string_view>
 #include <iostream>
 #include <algorithm>
 
@@ -14,9 +15,32 @@ void search_prompt(Editor *editor)
     }
 }
 
-void style_parse(const char *text, char *style, int length)
+void style_parse(const std::string_view text, std::string &style)
 {
-    
+    if(text.size() < 1) return;
+    int i = 0;
+    char currStyle = style[0];
+    while(i < text.size()) {
+	if(currStyle == 'A') {
+	    if(text[i] == '/' && i < text.size()-1 && text[i+1] == '*') {
+		currStyle = 'B';
+		style[i++] = currStyle;
+		style[i++] = currStyle;
+	    } else {
+		i++;
+	    }
+	} else if(currStyle == 'B') {
+	    if(text[i] == '*' && i < text.size()-1 && text[i+1] == '/') {
+		style[i++] = currStyle;
+		style[i++] = currStyle;
+		currStyle = 'A';
+	    } else {
+		style[i++] = currStyle;
+	    }
+	} else {
+	    ++i;
+	}
+    }
 }
 
 void style_update(int pos, int nInserted, int nDeleted, int nRestyled,
@@ -47,25 +71,25 @@ void style_update(int pos, int nInserted, int nDeleted, int nRestyled,
     auto start = buf->line_start(pos);
     auto end = buf->line_end(pos + nInserted - nDeleted);
     char *text = buf->text_range(start, end);
-    char *style = stylebuf->text_range(start, end);
+    std::string_view text_view(text, end - start);
+    std::string style(stylebuf->text_range(start, end));
     auto last = style[end - start - 1];
-    style_parse(text, style, end - start);
+    style_parse(text_view, style);
 
-    stylebuf->replace(start, end, style);
+    stylebuf->replace(start, end, style.c_str());
     editor->redisplay_range(start, end);
     if(last != style[end - start - 1]) {
 	free(text);
-	free(style);
 
 	end = buf->length();
 	text = buf->text_range(start, end);
+	text_view = text;
 	style = stylebuf->text_range(start, end);
-	style_parse(text, style, end - start);
-	stylebuf->replace(start, end, style);
+	style_parse(text_view, style);
+	stylebuf->replace(start, end, style.c_str());
 	editor->redisplay_range(start, end);
     }
     free(text);
-    free(style);
 }
 
 
@@ -75,7 +99,6 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
       m_font(defaultFont), m_stylebuf(new Fl_Text_Buffer(edit_buffer->length()))
 {
     buffer(edit_buffer);
-    mBuffer->add_modify_callback(style_update, this);
     
     // Equivalent of grey23 in emacs
     // Default text color is equivalent of cornsilk in emacs
@@ -85,6 +108,7 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
 			  auto *stylebuf = static_cast<Fl_Text_Buffer*>(data);
 			  stylebuf->replace(pos, pos+1, "A");
 		      }, m_stylebuf);
+    //mBuffer->add_modify_callback(style_update, this);
 
     selection_color(FL_BLUE);
     cursor_style(Fl_Text_Display::HEAVY_CURSOR);
@@ -94,6 +118,7 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
 	      Fl_Text_Display::WRAP_AT_COLUMN);
 
     open(m_currFile.c_str());
+    //style_update(0, mBuffer->length(), 0, 0, nullptr, this);
     window()->label(m_currFile.c_str());
 }
 
@@ -104,8 +129,7 @@ Editor::~Editor()
 
 int Editor::handle(int event)
 {
-    switch(event) {
-    case FL_KEYDOWN: {
+    if(event == FL_KEYDOWN) {
 	auto state = Fl::event_state();
 	if(state == FL_COMMAND || state == FL_ALT || state == FL_META)
 	    return Fl_Text_Editor::handle(event);
@@ -124,12 +148,8 @@ int Editor::handle(int event)
 	    window()->copy_label(newLabel);
 	    delete[] newLabel;
 	}
-	return Fl_Text_Editor::handle(event);
-    }	
-    default:
-	return Fl_Text_Editor::handle(event);
     }
-    return 0;
+    return Fl_Text_Editor::handle(event);
 }
 
 bool Editor::save()
@@ -144,11 +164,12 @@ bool Editor::save()
 	return false;
     }
     m_saved = true;
-    const auto *currLabel = window()->label();
-    auto labelLen = std::strlen(currLabel);
-    if(currLabel[labelLen-1] == '*') {
-	auto *newLabel = new char[labelLen-1];
-	std::strncat(newLabel, currLabel, labelLen-1);
+    const char *currLabel = window()->label();
+    const auto currLabelLen = std::strlen(currLabel);
+    if(currLabel[currLabelLen-1] == '*') {
+	auto *newLabel = new char[currLabelLen];
+	std::copy(currLabel, currLabel+currLabelLen-1, newLabel);
+	newLabel[currLabelLen-1] = '\0';
         window()->copy_label(newLabel);
 	delete[] newLabel;
     }

@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     std::unique_ptr<Fl_Text_Buffer> buffer(new Fl_Text_Buffer(Initial_Buffer_Size));
     std::unique_ptr<Fl_Window> window(new Fl_Window(Width, Width));
     window->begin();
-    auto *editor = new Editor(buffer.get(), 0, EditorY, Width, Width, defaultFont);
+        auto *editor = new Editor(buffer.get(), 0, EditorY, Width, Width, defaultFont);
         auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, 20);
 	    menu->insert(0, "View", 0, 0, 0, FL_SUBMENU);
 	        menu->insert(1, "Next Word", FL_COMMAND+'f', next_word, editor);

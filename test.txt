@@ -1,10 +1,12 @@
 Welcome to the editor!
-
 Right now, it has no name, but maybe one day it will.
 
 Right now, the editor supports a few different features,
 such as:
 - Line numbers
+- Custom coloring of text and background
+- Menus that show keyboard shortcuts
+- System menu specializes for macOS's menu system (menu is on the taskbar), while menu is widget in main window for all other systems
 - Save, Save As, and Open operations for files
   using CMD-S, CMD-Shift-S, and CMD-O
 - Emacs-like "Next word" and "Prior word" with
@@ -12,4 +14,6 @@ such as:
 - Basic support for font-loading; right now, the program
   is configured to use Monaco, a monospace font on macOS.
 - Indication as to when the current buffer has been edited
+
+
 Hopefully there will be more features to come!
