@@ -19,10 +19,12 @@ cp build/libfltk.a libfltk.a
 rm -r build
 #On macOS 10.14.6, get weird error with `dirent.h` not being found
 #This patch fixes the issue so FLTK can compile
-if[["$OSTYPE" == "darwin"*]]; then
-  patch Fl/filename.H fixdirent.patch
-fi
+patch Fl/filename.H fixdirent.patch
 
 #Cleanup unneeded build/documentation/example files
 cd fltk
 make clean
+cd ..
+
+#Finally, run the normal build script
+./build.sh
