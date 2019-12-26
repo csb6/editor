@@ -4,6 +4,7 @@
 #include <FL/fl_ask.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
 #include <FL/Fl_Native_File_Chooser.H>
+#include <FL/Fl_Tabs.H>
 #include "editor.hpp"
 #include <memory>
 
@@ -13,7 +14,7 @@ static Fl_Font setupFonts()
     // Search for user-specified default font; try to set it
     while(Fl::get_font(curr) != nullptr) {
 	if(strncmp(Fl::get_font(curr), Font,
-		   sizeof(Font) / sizeof(char)) != 0) {
+		   std::size(Font)) != 0) {
 	    Fl::set_font(curr, Font);
 	    return curr;
 	}
@@ -89,11 +90,15 @@ int main(int argc, char **argv)
     Fl::add_handler(disable_escape_handler);
     Fl::add_handler(ask_before_closing);
 
-    std::unique_ptr<Fl_Text_Buffer> buffer(new Fl_Text_Buffer(Initial_Buffer_Size));
-    std::unique_ptr<Fl_Window> window(new Fl_Window(Width, Width));
+    auto buffer = std::make_unique<Fl_Text_Buffer>(Initial_Buffer_Size);
+    auto window = std::make_unique<Fl_Window>(Width, Width);
     window->begin();
-        auto *editor = new Editor(buffer.get(), 0, EditorY, Width, Width, defaultFont);
-        auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, 20);
+        auto *tabs = new Fl_Tabs(0, TabY, Width, Width);
+        tabs->begin();
+            auto *editor = new Editor(buffer.get(), 0, EditorY, Width,
+				      EditorHeight, defaultFont);
+	tabs->end();
+        auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, MenuHeight);
 	    menu->insert(0, "View", 0, 0, 0, FL_SUBMENU);
 	        menu->insert(1, "Next Word", FL_COMMAND+'f', next_word, editor);
 	        menu->insert(1, "Prior Word", FL_COMMAND+'b', prev_word, editor);

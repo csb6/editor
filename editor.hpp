@@ -4,13 +4,16 @@
 #include <string>
 
 constexpr int Width = 500;
+constexpr int EditorHeight = Width - 30;
+constexpr int MenuHeight = 20;
 #ifdef __APPLE__
     // macOS menu is in a taskbar, so don't need to make room for it in the
     // main window above the editor widget
-    constexpr int EditorY = 0;
+    constexpr int TabY = 0;
 #else
-    constexpr int EditorY = 20;
+    constexpr int TabY = 20;
 #endif
+constexpr int EditorY = TabY + 30;
 // Name of editor font
 constexpr char Font[] = "Monaco";
 // Width of column on side of screen that contains line numbers
@@ -33,6 +36,7 @@ private:
     Fl_Text_Buffer *m_stylebuf;
     friend void style_update(int pos, int nInserted, int nDeleted, int nRestyled,
 			     const char *deletedText, void *data);
+    inline void change_label(const char *label);
 public:
     Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h,
 	   Fl_Font defaultFont);

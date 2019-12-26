@@ -4,7 +4,6 @@
 #include <FL/fl_ask.H>
 #include <cstring>
 #include <string_view>
-#include <iostream>
 #include <algorithm>
 
 void search_prompt(Editor *editor)
@@ -119,12 +118,19 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
 
     open(m_currFile.c_str());
     //style_update(0, mBuffer->length(), 0, 0, nullptr, this);
-    window()->label(m_currFile.c_str());
+    change_label(m_currFile.c_str());
 }
 
 Editor::~Editor()
 {
     delete m_stylebuf;
+}
+
+void Editor::change_label(const char *newLabel)
+{
+     window()->copy_label(newLabel);
+     copy_label(newLabel);
+     parent()->redraw();
 }
 
 int Editor::handle(int event)
@@ -145,7 +151,7 @@ int Editor::handle(int event)
 	    char *newLabel = new char[std::strlen(currLabel)+2];
 	    std::strcpy(newLabel, currLabel);
 	    std::strcat(newLabel, "*");
-	    window()->copy_label(newLabel);
+	    change_label(newLabel);
 	    delete[] newLabel;
 	}
     }
@@ -170,7 +176,7 @@ bool Editor::save()
 	auto *newLabel = new char[currLabelLen];
 	std::copy(currLabel, currLabel+currLabelLen-1, newLabel);
 	newLabel[currLabelLen-1] = '\0';
-        window()->copy_label(newLabel);
+        change_label(newLabel);
 	delete[] newLabel;
     }
     return true;
@@ -181,7 +187,7 @@ void Editor::save_as(const char *filename)
     m_currFile = filename;
     m_saved = false;
     if(save()) {
-	window()->copy_label(filename);
+	change_label(filename);
     }
 }
 
@@ -194,7 +200,7 @@ void Editor::open(const char *filename)
 	return;
     }
     m_currFile = filename;
-    window()->copy_label(filename);
+    change_label(filename);
 }
 
 void Editor::search_forward(int startPos, const char *searchString)
