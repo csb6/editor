@@ -142,7 +142,8 @@ int Editor::handle(int event)
 {
     if(event == FL_KEYDOWN) {
 	auto state = Fl::event_state();
-	if(state == FL_COMMAND || state == FL_ALT || state == FL_META)
+	if(state == FL_COMMAND || state == FL_COMMAND + FL_SHIFT
+	   || state == FL_ALT || state == FL_META)
 	    return Fl_Text_Editor::handle(event);
 	auto key_press = Fl::event_key();
         if(m_saved && (std::isalnum(key_press)

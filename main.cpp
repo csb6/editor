@@ -43,7 +43,7 @@ static int ask_before_closing(int event)
     return 0;
 }
 
-void update_current_tab(Fl_Widget *w, void *data);
+static void update_current_tab(Fl_Widget *w, void *data);
 
 class TabManager {
 private:
@@ -61,7 +61,7 @@ public:
 	    m_editors.push_back(new Editor(m_buffers[0].get(), 0, EditorY, Width,
 					   EditorHeight, m_font));
 	m_tabs->end();
-	m_tabs->when(FL_WHEN_CHANGED);
+	m_tabs->when(FL_WHEN_CHANGED | FL_WHEN_RELEASE);
 	m_tabs->callback(update_current_tab, this);
     }
 
@@ -80,28 +80,50 @@ public:
 	m_buffers.push_back(std::make_unique<Fl_Text_Buffer>(Initial_Buffer_Size));
 	m_currIndex = m_buffers.size() - 1;
 	m_tabs->begin();
-	    m_editors.push_back(new Editor(m_buffers[m_currIndex].get(), 0, EditorY,
-					   Width, EditorHeight, m_font, filename));
+        m_editors.push_back(new Editor(m_buffers[m_currIndex].get(), 0, EditorY,
+				       Width, EditorHeight, m_font, filename));
 	m_tabs->end();
+    }
+
+    void remove_tab(const Fl_Widget *tab) {
+	if(tab == nullptr || m_editors.size() <= 1)
+	    // Don't remove non-existent or the only remaining tab
+	    return;
+	auto it = std::find(m_editors.begin(), m_editors.end(), tab);
+	if(it != m_editors.end()) {
+	    auto index = std::distance(m_editors.begin(), it);
+	    m_tabs->remove(static_cast<int>(index));
+	    m_editors.erase(it);
+	    m_buffers.erase(m_buffers.begin()+index);
+	    if(m_currIndex >= index)
+		--m_currIndex;
+	}
     }
 };
 
-void update_current_tab(Fl_Widget *w, void *data)
+static void update_current_tab(Fl_Widget *w, void *data)
 {
     auto *tabs = static_cast<Fl_Tabs*>(w);
     auto *manager = static_cast<TabManager*>(data);
-    Editor *selected_editor = static_cast<Editor*>(tabs->value());
-    manager->curr_editor(selected_editor);
+    if(Fl::event_button() == FL_LEFT_MOUSE) {
+	// Select a tab with primary click
+	auto *selected_editor = static_cast<Editor*>(tabs->value());
+	manager->curr_editor(selected_editor);
+    } else if(Fl::event_button() == FL_RIGHT_MOUSE) {
+	// Close a tab with secondary click
+	Fl_Widget *selected = tabs->which(Fl::event_x(), Fl::event_y());
+	manager->remove_tab(selected);
+    }
 }
 
 
-void save_buffer(Fl_Widget*, void *data)
+static void save_buffer(Fl_Widget*, void *data)
 {
     Editor *editor = static_cast<TabManager*>(data)->curr_editor();
     editor->save();
 }
 
-void save_prompt(Fl_Widget*, void *data)
+static void save_prompt(Fl_Widget*, void *data)
 {
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
     if(chooser.show() == 0) {
@@ -111,7 +133,7 @@ void save_prompt(Fl_Widget*, void *data)
     }
 }
 
-void open_prompt(Fl_Widget*, void *data)
+static void open_prompt(Fl_Widget*, void *data)
 {
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
     if(chooser.show() == 0) {
@@ -121,7 +143,7 @@ void open_prompt(Fl_Widget*, void *data)
     }
 }
 
-void open_tab(Fl_Widget*, void *data)
+static void open_tab(Fl_Widget*, void *data)
 {
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
     if(chooser.show() == 0) {
@@ -131,13 +153,13 @@ void open_tab(Fl_Widget*, void *data)
     }
 }
 
-void prev_word(Fl_Widget*, void *data)
+static void prev_word(Fl_Widget*, void *data)
 {
     Editor *editor = static_cast<TabManager*>(data)->curr_editor();
     editor->previous_word();
 }
 
-void next_word(Fl_Widget*, void *data)
+static void next_word(Fl_Widget*, void *data)
 {
     Editor *editor = static_cast<TabManager*>(data)->curr_editor();
     editor->next_word();
@@ -162,16 +184,19 @@ int main(int argc, char **argv)
 
         auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, MenuHeight);
 	    menu->insert(0, "View", 0, 0, 0, FL_SUBMENU);
-	        menu->insert(1, "Next Word", FL_COMMAND+'f', next_word, &manager);
-	        menu->insert(1, "Prior Word", FL_COMMAND+'b', prev_word, &manager);
+	        menu->insert(1, "Next Word", FL_COMMAND+'f',
+			     next_word, &manager);
+		menu->insert(1, "Prior Word", FL_COMMAND+'b',
+			     prev_word, &manager);
 	    menu->insert(0, "File", 0, 0, 0, FL_SUBMENU);
-	        menu->insert(1, "Save", FL_COMMAND+'s', save_buffer, &manager);
-		menu->insert(1, "Save As", FL_COMMAND+FL_SHIFT+'s', save_prompt,
-			     &manager);
+	        menu->insert(1, "Save", FL_COMMAND+'s',
+			     save_buffer, &manager);
+		menu->insert(1, "Save As", FL_COMMAND+FL_SHIFT+'s',
+			     save_prompt, &manager);
 		menu->insert(1, "Open in New Tab", FL_COMMAND+FL_SHIFT+'o',
 			     open_tab, &manager);
-		menu->insert(1, "Open", FL_COMMAND+'o', open_prompt,
-			     &manager);
+		menu->insert(1, "Open", FL_COMMAND+'o',
+			     open_prompt, &manager);
 
         window->resizable(tabs);
     window->end();

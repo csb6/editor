@@ -14,7 +14,8 @@ such as:
 - Basic support for font-loading; right now, the program
   is configured to use Monaco, a monospace font on macOS.
 - Indication as to when the current buffer has been edited
-- Multi-tab editing
+- Multi-tab editing, with the ability to open/close new tabs. CMD-Shift-O opens
+  a new tab, while left-clicking on an open tab closes it
 
 
 Hopefully there will be more features to come!
