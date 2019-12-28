@@ -93,12 +93,13 @@ void style_update(int pos, int nInserted, int nDeleted, int nRestyled,
 
 
 Editor::Editor(Fl_Text_Buffer *edit_buffer,
-	       int x, int y, int w, int h, Fl_Font defaultFont)
-    : Fl_Text_Editor(x, y, w, h), m_currFile("test.txt"),
+	       int x, int y, int w, int h, Fl_Font defaultFont,
+	       const char *filename)
+    : Fl_Text_Editor(x, y, w, h), m_currFile(filename),
       m_font(defaultFont), m_stylebuf(new Fl_Text_Buffer(edit_buffer->length()))
 {
     buffer(edit_buffer);
-    
+
     // Equivalent of grey23 in emacs
     // Default text color is equivalent of cornsilk in emacs
     color(fl_rgb_color(59, 59, 59));
@@ -126,9 +127,13 @@ Editor::~Editor()
     delete m_stylebuf;
 }
 
+bool Editor::operator==(const Editor *other) const
+{
+    return m_currFile == other->m_currFile && mBuffer == other->mBuffer;
+}
+
 void Editor::change_label(const char *newLabel)
 {
-     window()->copy_label(newLabel);
      copy_label(newLabel);
      parent()->redraw();
 }
@@ -147,7 +152,7 @@ int Editor::handle(int event)
 		       || key_press == FL_BackSpace)) {
 	    // Add * to show that file has changed
 	    m_saved = false;
-	    const auto *currLabel = window()->label();
+	    const auto *currLabel = label();
 	    char *newLabel = new char[std::strlen(currLabel)+2];
 	    std::strcpy(newLabel, currLabel);
 	    std::strcat(newLabel, "*");
@@ -170,7 +175,7 @@ bool Editor::save()
 	return false;
     }
     m_saved = true;
-    const char *currLabel = window()->label();
+    const char *currLabel = label();
     const auto currLabelLen = std::strlen(currLabel);
     if(currLabel[currLabelLen-1] == '*') {
 	auto *newLabel = new char[currLabelLen];

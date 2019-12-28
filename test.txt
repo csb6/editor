@@ -14,6 +14,7 @@ such as:
 - Basic support for font-loading; right now, the program
   is configured to use Monaco, a monospace font on macOS.
 - Indication as to when the current buffer has been edited
+- Multi-tab editing
 
 
 Hopefully there will be more features to come!

@@ -7,6 +7,8 @@
 #include <FL/Fl_Tabs.H>
 #include "editor.hpp"
 #include <memory>
+#include <algorithm>
+#include <vector>
 
 static Fl_Font setupFonts()
 {
@@ -41,9 +43,61 @@ static int ask_before_closing(int event)
     return 0;
 }
 
+void update_current_tab(Fl_Widget *w, void *data);
+
+class TabManager {
+private:
+    std::vector<std::unique_ptr<Fl_Text_Buffer>> m_buffers;
+    std::vector<Editor*> m_editors;
+    Fl_Tabs *m_tabs;
+    std::size_t m_currIndex = 0;
+    Fl_Font m_font;
+public:
+    TabManager(Fl_Tabs *parent, Fl_Font font)
+	: m_tabs(parent), m_font(font)
+    {
+	m_tabs->begin();
+            m_buffers.push_back(std::make_unique<Fl_Text_Buffer>(Initial_Buffer_Size));
+	    m_editors.push_back(new Editor(m_buffers[0].get(), 0, EditorY, Width,
+					   EditorHeight, m_font));
+	m_tabs->end();
+	m_tabs->when(FL_WHEN_CHANGED);
+	m_tabs->callback(update_current_tab, this);
+    }
+
+    void curr_editor(const Editor *selected)
+    {
+	auto it = std::find(m_editors.begin(), m_editors.end(), selected);
+	if(it != m_editors.end()) {
+	    m_currIndex = std::distance(m_editors.begin(), it);
+	}
+    }
+
+    Editor* curr_editor() { return m_editors[m_currIndex]; }
+
+    void add_tab(const char *filename)
+    {
+	m_buffers.push_back(std::make_unique<Fl_Text_Buffer>(Initial_Buffer_Size));
+	m_currIndex = m_buffers.size() - 1;
+	m_tabs->begin();
+	    m_editors.push_back(new Editor(m_buffers[m_currIndex].get(), 0, EditorY,
+					   Width, EditorHeight, m_font, filename));
+	m_tabs->end();
+    }
+};
+
+void update_current_tab(Fl_Widget *w, void *data)
+{
+    auto *tabs = static_cast<Fl_Tabs*>(w);
+    auto *manager = static_cast<TabManager*>(data);
+    Editor *selected_editor = static_cast<Editor*>(tabs->value());
+    manager->curr_editor(selected_editor);
+}
+
+
 void save_buffer(Fl_Widget*, void *data)
 {
-    auto *editor = static_cast<Editor*>(data);
+    Editor *editor = static_cast<TabManager*>(data)->curr_editor();
     editor->save();
 }
 
@@ -52,7 +106,7 @@ void save_prompt(Fl_Widget*, void *data)
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
     if(chooser.show() == 0) {
 	// User successfully picks a file
-	auto *editor = static_cast<Editor*>(data);
+	Editor *editor = static_cast<TabManager*>(data)->curr_editor();
 	editor->save_as(chooser.filename());
     }
 }
@@ -62,20 +116,30 @@ void open_prompt(Fl_Widget*, void *data)
     Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
     if(chooser.show() == 0) {
 	// User successfully picks a file
-	auto *editor = static_cast<Editor*>(data);
+	Editor *editor = static_cast<TabManager*>(data)->curr_editor();
 	editor->open(chooser.filename());
+    }
+}
+
+void open_tab(Fl_Widget*, void *data)
+{
+    Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_FILE);
+    if(chooser.show() == 0) {
+	// User successfully picks a file
+	auto *manager = static_cast<TabManager*>(data);
+	manager->add_tab(chooser.filename());
     }
 }
 
 void prev_word(Fl_Widget*, void *data)
 {
-    auto *editor = static_cast<Editor*>(data);
+    Editor *editor = static_cast<TabManager*>(data)->curr_editor();
     editor->previous_word();
 }
 
 void next_word(Fl_Widget*, void *data)
 {
-    auto *editor = static_cast<Editor*>(data);
+    Editor *editor = static_cast<TabManager*>(data)->curr_editor();
     editor->next_word();
 }
 
@@ -90,26 +154,31 @@ int main(int argc, char **argv)
     Fl::add_handler(disable_escape_handler);
     Fl::add_handler(ask_before_closing);
 
-    auto buffer = std::make_unique<Fl_Text_Buffer>(Initial_Buffer_Size);
-    auto window = std::make_unique<Fl_Window>(Width, Width);
+    auto *window = new Fl_Window(Width, Width);
+    window->copy_label("Editor");
     window->begin();
         auto *tabs = new Fl_Tabs(0, TabY, Width, Width);
-        tabs->begin();
-            auto *editor = new Editor(buffer.get(), 0, EditorY, Width,
-				      EditorHeight, defaultFont);
-	tabs->end();
+	TabManager manager(tabs, defaultFont);
+
         auto *menu = new Fl_Sys_Menu_Bar(0, 0, Width, MenuHeight);
 	    menu->insert(0, "View", 0, 0, 0, FL_SUBMENU);
-	        menu->insert(1, "Next Word", FL_COMMAND+'f', next_word, editor);
-	        menu->insert(1, "Prior Word", FL_COMMAND+'b', prev_word, editor);
+	        menu->insert(1, "Next Word", FL_COMMAND+'f', next_word, &manager);
+	        menu->insert(1, "Prior Word", FL_COMMAND+'b', prev_word, &manager);
 	    menu->insert(0, "File", 0, 0, 0, FL_SUBMENU);
-	        menu->insert(1, "Save", FL_COMMAND+'s', save_buffer, editor);
+	        menu->insert(1, "Save", FL_COMMAND+'s', save_buffer, &manager);
 		menu->insert(1, "Save As", FL_COMMAND+FL_SHIFT+'s', save_prompt,
-			     editor);
-		menu->insert(1, "Open", FL_COMMAND+'o', open_prompt, editor);
-	window->resizable(editor);
-    window->end();
+			     &manager);
+		menu->insert(1, "Open in New Tab", FL_COMMAND+FL_SHIFT+'o',
+			     open_tab, &manager);
+		menu->insert(1, "Open", FL_COMMAND+'o', open_prompt,
+			     &manager);
 
+        window->resizable(tabs);
+    window->end();
     window->show(argc, argv);
-    return Fl::run();
+    auto status = Fl::run();
+    // Window must be explicitly deleted before the buffers in TabManager; otherwise
+    // destructors of those buffers will print out error messages
+    delete window;
+    return status;
 }

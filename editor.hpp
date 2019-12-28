@@ -39,8 +39,9 @@ private:
     inline void change_label(const char *label);
 public:
     Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h,
-	   Fl_Font defaultFont);
+	   Fl_Font defaultFont, const char *filename = "test.txt");
     ~Editor();
+    bool operator==(const Editor *other) const;
     int handle(int event) override;
     // File handling
     bool save();
