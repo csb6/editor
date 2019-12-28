@@ -1,5 +1,7 @@
 # Editor
 
+![Screenshot](screenshot.png)
+
 This is a text editor built using FLTK GUI library and C++. It is heavily based on the default
 FLTK text editor widget, `Fl_Text_Editor`, which in turn is based on the NEdit
 editor. It is designed to be cross-platform, but so far I have only tested builds
