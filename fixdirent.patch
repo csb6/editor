@@ -1,4 +1,0 @@
-26c26
-< #  include "/usr/include/dirent.h"
----
-> //#  include "/usr/include/dirent.h"
