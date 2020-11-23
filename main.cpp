@@ -1,11 +1,17 @@
-#include <cstring> //for strncmp()
+// Ignore internal FLTK warnings
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wall"
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Tabs.H>
+#pragma GCC diagnostic pop
+
 #include "editor.hpp"
+#include <cstring> //for strncmp()
 #include <memory>
 #include <algorithm>
 #include <vector>

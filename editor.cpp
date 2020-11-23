@@ -1,7 +1,12 @@
-#include "editor.hpp"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wall"
 #include <FL/Fl.H>
 #include <FL/Fl_Text_Buffer.H>
 #include <FL/fl_ask.H>
+#pragma GCC diagnostic pop
+
+#include "editor.hpp"
 #include <cstring>
 #include <string_view>
 #include <algorithm>

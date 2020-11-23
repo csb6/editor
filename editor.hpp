@@ -1,6 +1,12 @@
 #ifndef EDITOR_APP_H
 #define EDITOR_APP_H
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wall"
 #include <FL/Fl_Text_Editor.H>
+#pragma GCC diagnostic pop
+
 #include <string>
 
 constexpr int Width = 500;
