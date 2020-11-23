@@ -11,109 +11,18 @@
 #include <string_view>
 #include <algorithm>
 
-void search_prompt(Editor *editor)
-{
-    const auto *searchString = fl_input("Search (case-insensitive):", "");
-    if(searchString != nullptr && strncmp(searchString, "", 1) != 0) {
-        editor->search_forward(editor->insert_position(), searchString);
-    }
-}
-
-void style_parse(const std::string_view text, std::string &style)
-{
-    if(text.size() < 1) return;
-    int i = 0;
-    char currStyle = style[0];
-    while(i < text.size()) {
-	if(currStyle == 'A') {
-	    if(text[i] == '/' && i < text.size()-1 && text[i+1] == '*') {
-		currStyle = 'B';
-		style[i++] = currStyle;
-		style[i++] = currStyle;
-	    } else {
-		i++;
-	    }
-	} else if(currStyle == 'B') {
-	    if(text[i] == '*' && i < text.size()-1 && text[i+1] == '/') {
-		style[i++] = currStyle;
-		style[i++] = currStyle;
-		currStyle = 'A';
-	    } else {
-		style[i++] = currStyle;
-	    }
-	} else {
-	    ++i;
-	}
-    }
-}
-
-void style_update(int pos, int nInserted, int nDeleted, int nRestyled,
-		  const char *deletedText, void *data)
-{
-    auto *editor = static_cast<Editor*>(data);
-    auto *stylebuf = editor->m_stylebuf;
-    auto *buf = editor->buffer();
-    if(nInserted > 0 && nDeleted == 0) {
-	// Selection change
-	stylebuf->unselect();
-	return;
-    }
-    if(nInserted > 0) {
-	// Insert characters into style buffer
-	char *style = new char[nInserted + 1];
-	std::fill_n(style, nInserted, 'A');
-	style[nInserted+1] = '\0';
-	stylebuf->replace(pos, pos + nDeleted, style);
-	delete[] style;
-    } else {
-	// Delete chars from style buffer
-	stylebuf->remove(pos, pos + nDeleted);
-    }
-
-    stylebuf->select(pos, pos + nInserted - nDeleted);
-
-    auto start = buf->line_start(pos);
-    auto end = buf->line_end(pos + nInserted - nDeleted);
-    char *text = buf->text_range(start, end);
-    std::string_view text_view(text, end - start);
-    std::string style(stylebuf->text_range(start, end));
-    auto last = style[end - start - 1];
-    style_parse(text_view, style);
-
-    stylebuf->replace(start, end, style.c_str());
-    editor->redisplay_range(start, end);
-    if(last != style[end - start - 1]) {
-	free(text);
-
-	end = buf->length();
-	text = buf->text_range(start, end);
-	text_view = text;
-	style = stylebuf->text_range(start, end);
-	style_parse(text_view, style);
-	stylebuf->replace(start, end, style.c_str());
-	editor->redisplay_range(start, end);
-    }
-    free(text);
-}
-
-
 Editor::Editor(Fl_Text_Buffer *edit_buffer,
-	       int x, int y, int w, int h, Fl_Font defaultFont,
+	       int x, int y, int w, int h, Fl_Font font,
 	       const char *filename)
-    : Fl_Text_Editor(x, y, w, h), m_currFile(filename),
-      m_font(defaultFont), m_stylebuf(new Fl_Text_Buffer(edit_buffer->length()))
+    : Fl_Text_Editor(x, y, w, h), m_currFile(filename), m_font(font)
 {
     buffer(edit_buffer);
 
     // Equivalent of grey23 in emacs
-    // Default text color is equivalent of cornsilk in emacs
     color(fl_rgb_color(59, 59, 59));
-    highlight_data(m_stylebuf, m_styletable, sizeof(m_styletable) / sizeof(m_styletable[0]),
-		   0, [](int pos, void *data) {
-			  auto *stylebuf = static_cast<Fl_Text_Buffer*>(data);
-			  stylebuf->replace(pos, pos+1, "A");
-		      }, m_stylebuf);
-    //mBuffer->add_modify_callback(style_update, this);
+    // Equivalent of cornsilk in emacs
+    textcolor(fl_rgb_color(255, 248, 220));
+    textfont(m_font);
 
     selection_color(FL_BLUE);
     cursor_style(Fl_Text_Display::HEAVY_CURSOR);
@@ -123,14 +32,11 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
 	      Fl_Text_Display::WRAP_AT_COLUMN);
 
     open(m_currFile.c_str());
-    //style_update(0, mBuffer->length(), 0, 0, nullptr, this);
     change_label(m_currFile.c_str());
 }
 
 Editor::~Editor()
-{
-    delete m_stylebuf;
-}
+{}
 
 bool Editor::operator==(const Editor *other) const
 {
@@ -212,13 +118,4 @@ void Editor::open(const char *filename)
     }
     m_currFile = filename;
     change_label(filename);
-}
-
-void Editor::search_forward(int startPos, const char *searchString)
-{
-    int *foundPos = nullptr;
-    mBuffer->search_forward(startPos, searchString, foundPos);
-    if(foundPos != nullptr) {
-	mBuffer->highlight_position(foundPos, foundPos+1);
-    }
 }
