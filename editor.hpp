@@ -51,7 +51,6 @@ private:
         };*/
     void set_saved();
     void set_unsaved();
-    void point_label(const char*);
     void set_filename(const char*);
     const char* filename() const;
 };

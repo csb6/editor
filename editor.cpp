@@ -48,14 +48,16 @@ void Editor::set_saved()
 {
     m_saved = true;
     // Exclude leading '*'
-    point_label(m_currFile.data() + 1);
+    label(m_currFile.data() + 1);
+    parent()->redraw();
 }
 
 void Editor::set_unsaved()
 {
     m_saved = false;
     // Include leading '*'
-    point_label(m_currFile.data());;
+    label(m_currFile.data());
+    parent()->redraw();
 }
 
 void Editor::set_filename(const char *new_name)
@@ -68,12 +70,6 @@ void Editor::set_filename(const char *new_name)
 const char* Editor::filename() const
 {
     return m_currFile.data() + 1;
-}
-
-void Editor::point_label(const char *newLabel)
-{
-     label(newLabel);
-     parent()->redraw();
 }
 
 int Editor::handle(int event)
