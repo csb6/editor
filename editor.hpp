@@ -30,7 +30,18 @@ constexpr int Initial_Buffer_Size = 200; // in bytes?
 class Editor : public Fl_Text_Editor {
     std::string m_currFile;
     Fl_Font m_font;
-    bool m_saved = true;
+    bool m_saved;
+public:
+    Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h,
+	   Fl_Font defaultFont, const char *file_name = "test.txt");
+    ~Editor();
+    bool operator==(const Editor *other) const;
+    int handle(int event) override;
+    // File handling
+    bool save();
+    bool save_as(const char *file_name);
+    bool open(const char *file_name);
+private:
     /*const Style_Table_Entry m_styletable[4] = {
 	//     Font Color            | Font  | Font Size
 	{ fl_rgb_color(250, 244, 219), m_font,    13    }, // 'A' - Default style
@@ -38,16 +49,10 @@ class Editor : public Fl_Text_Editor {
 	{ fl_rgb_color(242, 164, 129), m_font,    13    }, // 'C' - Strings
 	{ fl_rgb_color(108, 232, 235), m_font,    13    }  // 'D' - Keywords
         };*/
-    inline void change_label(const char *label);
-public:
-    Editor(Fl_Text_Buffer *edit_buffer, int x, int y, int w, int h,
-	   Fl_Font defaultFont, const char *filename = "test.txt");
-    ~Editor();
-    bool operator==(const Editor *other) const;
-    int handle(int event) override;
-    // File handling
-    bool save();
-    void save_as(const char *filename);
-    void open(const char *filename);
+    void set_saved();
+    void set_unsaved();
+    void point_label(const char*);
+    void set_filename(const char*);
+    const char* filename() const;
 };
 #endif

@@ -13,8 +13,8 @@
 
 Editor::Editor(Fl_Text_Buffer *edit_buffer,
 	       int x, int y, int w, int h, Fl_Font font,
-	       const char *filename)
-    : Fl_Text_Editor(x, y, w, h), m_currFile(filename), m_font(font)
+	       const char *file_name)
+    : Fl_Text_Editor(x, y, w, h), m_font(font)
 {
     buffer(edit_buffer);
 
@@ -31,8 +31,9 @@ Editor::Editor(Fl_Text_Buffer *edit_buffer,
     wrap_mode(Fl_Text_Display::WRAP_AT_BOUNDS,
 	      Fl_Text_Display::WRAP_AT_COLUMN);
 
-    open(m_currFile.c_str());
-    change_label(m_currFile.c_str());
+    set_filename(file_name);
+    open(file_name);
+    set_saved();
 }
 
 Editor::~Editor()
@@ -43,9 +44,35 @@ bool Editor::operator==(const Editor *other) const
     return m_currFile == other->m_currFile && mBuffer == other->mBuffer;
 }
 
-void Editor::change_label(const char *newLabel)
+void Editor::set_saved()
 {
-     copy_label(newLabel);
+    m_saved = true;
+    // Exclude leading '*'
+    point_label(m_currFile.data() + 1);
+}
+
+void Editor::set_unsaved()
+{
+    m_saved = false;
+    // Include leading '*'
+    point_label(m_currFile.data());;
+}
+
+void Editor::set_filename(const char *new_name)
+{
+    m_currFile.clear();
+    m_currFile = "*";
+    m_currFile += new_name;
+}
+
+const char* Editor::filename() const
+{
+    return m_currFile.data() + 1;
+}
+
+void Editor::point_label(const char *newLabel)
+{
+     label(newLabel);
      parent()->redraw();
 }
 
@@ -62,14 +89,7 @@ int Editor::handle(int event)
 		       || std::isspace(key_press)
 		       || key_press == FL_Enter
 		       || key_press == FL_BackSpace)) {
-	    // Add * to show that file has changed
-	    m_saved = false;
-	    const auto *currLabel = label();
-	    char *newLabel = new char[std::strlen(currLabel)+2];
-	    std::strcpy(newLabel, currLabel);
-	    std::strcat(newLabel, "*");
-	    change_label(newLabel);
-	    delete[] newLabel;
+            set_unsaved();
 	}
     }
     return Fl_Text_Editor::handle(event);
@@ -81,41 +101,40 @@ bool Editor::save()
 	return false;
     }
     auto *buf = buffer();
-    int status = buf->savefile(m_currFile.c_str(), buf->length());
+    int status = buf->savefile(filename(), buf->length());
     if(status != 0) {
         fl_alert("Error: could not save file");
 	return false;
-    }
-    m_saved = true;
-    const char *currLabel = label();
-    const auto currLabelLen = std::strlen(currLabel);
-    if(currLabel[currLabelLen-1] == '*') {
-	auto *newLabel = new char[currLabelLen];
-	std::copy(currLabel, currLabel+currLabelLen-1, newLabel);
-	newLabel[currLabelLen-1] = '\0';
-        change_label(newLabel);
-	delete[] newLabel;
-    }
-    return true;
-}
-
-void Editor::save_as(const char *filename)
-{
-    m_currFile = filename;
-    m_saved = false;
-    if(save()) {
-	change_label(filename);
+    } else {
+        set_saved();
+        return true;
     }
 }
 
-void Editor::open(const char *filename)
+bool Editor::save_as(const char *file_name)
 {
     auto *buf = buffer();
-    int status = buf->loadfile(filename);
+    int status = buf->savefile(file_name, buf->length());
+    if(status != 0) {
+        fl_alert("Error: could not save file");
+        return false;
+    } else {
+        set_filename(file_name);
+        set_saved();
+        return true;
+    }
+}
+
+bool Editor::open(const char *file_name)
+{
+    auto *buf = buffer();
+    int status = buf->loadfile(file_name);
     if(status != 0) {
 	fl_alert("Error: could not load file");
-	return;
+        return false;
+    } else {
+        set_filename(file_name);
+        set_saved();
+        return true;
     }
-    m_currFile = filename;
-    change_label(filename);
 }
